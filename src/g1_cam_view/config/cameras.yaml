@@ -1,0 +1,52 @@
+# Параметры двух USB-камер Logitech (узлы usb_cam).
+#
+# Перед запуском подставьте стабильные пути своих камер вместо CHANGE_ME.
+# Список путей выдаёт ./scripts/find_cameras.sh; имена ссылок в /dev/v4l/by-id
+# содержат серийный номер камеры и не зависят от порядка подключения.
+#
+# Узлы запускаются с namespace logi_1 и logi_2, тема каждой камеры:
+#   /logi_1/image_raw, /logi_2/image_raw
+#
+# Если обе камеры одной модели и by-id недоступен, используйте
+# /dev/v4l/by-path/... (ссылка привязана к USB-порту).
+#
+# pixel_format: mjpeg2rgb мягче всего грузит USB и даёт rgb8 на выходе.
+# Если камера не умеет MJPEG, укажите yuyv2rgb.
+
+/logi_1/usb_cam:
+  ros__parameters:
+    video_device: "/dev/v4l/by-id/CHANGE_ME-logi_1-video-index0"
+    camera_name: "logi_1"
+    frame_id: "logi_1_optical_frame"
+    image_width: 640
+    image_height: 480
+    framerate: 15.0
+    pixel_format: "mjpeg2rgb"
+    io_method: "mmap"
+    camera_info_url: ""
+    brightness: -1
+    contrast: -1
+    saturation: -1
+    sharpness: -1
+    gain: -1
+    auto_white_balance: true
+    autoexposure: true
+
+/logi_2/usb_cam:
+  ros__parameters:
+    video_device: "/dev/v4l/by-id/CHANGE_ME-logi_2-video-index0"
+    camera_name: "logi_2"
+    frame_id: "logi_2_optical_frame"
+    image_width: 640
+    image_height: 480
+    framerate: 15.0
+    pixel_format: "mjpeg2rgb"
+    io_method: "mmap"
+    camera_info_url: ""
+    brightness: -1
+    contrast: -1
+    saturation: -1
+    sharpness: -1
+    gain: -1
+    auto_white_balance: true
+    autoexposure: true

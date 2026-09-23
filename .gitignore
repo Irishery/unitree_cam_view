@@ -1,0 +1,7 @@
+build/
+install/
+log/
+.vscode/
+*.pyc
+__pycache__/
+g1_camera_logs/
