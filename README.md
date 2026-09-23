@@ -249,6 +249,11 @@ G1_CAM_PEERS=10.0.88.180:7410 \
   (или compressed-топик отдельной камеры), что установлен
   `ros-humble-compressed-image-transport` и совпадают `G1_CAM_PEERS`. Все
   Image-панели подписаны с QoS Best Effort — менять на Reliable не нужно.
+- **`failed to create unicast sockets ... ports 7410, 7411`.** Уже запущен
+  другой зритель (participant index 0 может быть только один). Скрипт это
+  проверяет и подсказывает команду; принудительно заменить:
+  `./scripts/view_cameras.sh --force`. Для робота аналогично:
+  `./scripts/robot_up.sh --force`.
 - **Низкий FPS / рывки по Wi-Fi.** Уменьшить `mosaic_fps`, разрешение камер или
   `mosaic_quality`. Сырые топики (`.../image_raw`) по Wi-Fi не смотреть:
   только `/compressed` или мозаику.
