@@ -73,30 +73,39 @@ cd ~/unitree_cam_view
 `librealsense2-udev-rules` из репозитория librealsense (см. раздел
 «Диагностика»).
 
-## Робот: настройка камер
+## Робот: настройка камер (необязательно)
 
-Подключить все три камеры по USB и выполнить:
+RealSense драйвер находит сам, а Logitech launch ищет автоматически: сканирует
+`/dev/v4l/by-id/`, берёт ссылки `usb-046d_*-video-index0` (Logitech по USB-ID
+`046d`), сортирует и назначает первые две на `logi_1` и `logi_2`. Камеры можно
+подключать в любом порядке — привязка к by-id стабильна. Назначение видно в
+логе запуска:
 
-```bash
-./scripts/find_cameras.sh
+```text
+[g1_cam_view] logi_1: auto camera /dev/v4l/by-id/usb-046d_...-video-index0
+[g1_cam_view] logi_2: auto camera /dev/v4l/by-id/usb-046d_...-video-index0
 ```
 
-Скрипт печатает ссылки `/dev/v4l/by-id/...`. Они содержат серийный номер и не
-зависят от порядка подключения. Вписать путь каждой Logitech в
-`src/g1_cam_view/config/cameras.yaml` вместо `CHANGE_ME` (у RealSense путь не
-нужен, драйвер находит её сам):
+Ручной конфиг нужен только если:
+
+- важно, какая физическая камера попадёт в `logi_1`, а какая в `logi_2`;
+- камеры не Logitech (поменяйте `G1_CAM_LOGI_FILTER`, по умолчанию `usb-046d`);
+- ссылки `/dev/v4l/by-id` нет (задайте пути вручную или каталог
+  через `G1_CAM_DEVICE_DIR`).
+
+Тогда выполнить `./scripts/find_cameras.sh` и вписать пути в
+`src/g1_cam_view/config/cameras.yaml` вместо `CHANGE_ME`; указанные в конфиге
+пути имеют приоритет над авто-обнаружением:
 
 ```yaml
 /logi_1/usb_cam:
   ros__parameters:
-    video_device: "/dev/v4l/by-id/usb-046d_HD_Pro_Webcam_C920_XXXXXXXX-video-index0"
+    video_device: "/dev/v4l/by-id/usb-046d_Brio_505_XXXXXXXX-video-index0"
 ```
 
 Разрешение и частоту обеих Logitech задают там же (`image_width`,
 `image_height`, `framerate`, `pixel_format`). Если камера не умеет MJPEG,
 заменить `mjpeg2rgb` на `yuyv2rgb`.
-
-Сборка после правки конфига не нужна: `config` установлен симлинком.
 
 ## Робот: запуск
 
@@ -124,7 +133,11 @@ ros2 launch g1_cam_view cameras.launch.py
 | `tile_width`, `tile_height` | `640`, `480` | размер плитки одной камеры |
 | `columns` | `3` | плиток в ряд |
 
-Пример без Logitech, пока не заданы их пути:
+Дополнительно авто-обнаружение настраивается переменными окружения:
+`G1_CAM_DEVICE_DIR` (по умолчанию `/dev/v4l/by-id`) и `G1_CAM_LOGI_FILTER`
+(по умолчанию `usb-046d`).
+
+Пример только с RealSense:
 
 ```bash
 ros2 launch g1_cam_view cameras.launch.py logi_1:=false logi_2:=false
@@ -153,10 +166,10 @@ export G1_CAM_PEERS=10.0.88.165:7410
 ```
 
 `robot_up.sh` сам собирает CycloneDDS URI, пробрасывает USB-устройства
-(`/dev` + cgroup-правила для video/USB), берёт конфиг камер из
-`src/g1_cam_view/config/cameras.yaml` и запускает `cameras.launch.py`. Правки
-`cameras.yaml` применяются без пересборки образа, остального — требуют
-`robot_build.sh`.
+(`/dev` + cgroup-правила для video/USB), монтирует
+`src/g1_cam_view/config/cameras.yaml` (плюс работает авто-обнаружение Logitech)
+и запускает `cameras.launch.py`. Правки `cameras.yaml` применяются без
+пересборки образа, остального — требуют `robot_build.sh`.
 
 Дополнительные аргументы launch передаются через `G1_CAM_LAUNCH_ARGS`:
 
@@ -222,10 +235,13 @@ G1_CAM_PEERS=10.0.88.180:7410 \
 
 ## Диагностика
 
-- **`ros2 topic hz` на роботе молчит.** Проверить `find_cameras.sh`, путь в
-  `cameras.yaml` и что камера не занята другим процессом (`fuser -v
-  /dev/videoX`). Для Logitech смотреть лог `usb_cam`: он печатает список
-  поддерживаемых форматов; при неверном `pixel_format` узел падает.
+- **`ros2 topic hz` на роботе молчит.** Для Logitech смотреть строку
+  `[g1_cam_view] logi_N: ...` в логе запуска: `camera not found` означает, что
+  нет ссылки `usb-046d_*-video-index0` (проверить `find_cameras.sh` и
+  `G1_CAM_LOGI_FILTER`); `Device specified is not available` — камера занята
+  другим процессом (`fuser -v /dev/videoX`) или путь устарел. Для `usb_cam`
+  смотреть лог: он печатает поддерживаемые форматы; при неверном
+  `pixel_format` узел падает.
 - **RealSense не открывается.** Проверить `lsusb`, кабель USB 3 и udev-правила
   librealsense; при нескольких камерах задать `serial_no:=...`, иначе драйвер
   возьмёт первую.

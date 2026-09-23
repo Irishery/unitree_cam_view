@@ -1,3 +1,4 @@
+import glob
 import os
 
 import yaml
@@ -11,15 +12,11 @@ from launch_ros.parameter_descriptions import ParameterValue
 
 PACKAGE_NAME = "g1_cam_view"
 LOGI_NAMESPACES = ("logi_1", "logi_2")
-MOSAIC_TOPICS = [
-    "/camera/camera/color/image_raw",
-    "/logi_1/image_raw",
-    "/logi_2/image_raw",
-]
-MOSAIC_LABELS = ["D435", "logi_1", "logi_2"]
+REALSENSE_TOPIC = "/camera/camera/color/image_raw"
+REALSENSE_LABEL = "D435"
 
 
-def _logi_device(params_file, namespace):
+def _configured_device(params_file, namespace):
     try:
         with open(params_file, "r", encoding="utf-8") as stream:
             config = yaml.safe_load(stream) or {}
@@ -29,9 +26,41 @@ def _logi_device(params_file, namespace):
         return ""
 
 
+def _discover_devices(device_dir, id_filter):
+    pattern = os.path.join(device_dir, f"*{id_filter}*-video-index0")
+    return [path for path in sorted(glob.glob(pattern)) if os.path.exists(path)]
+
+
+def _resolve_logi_devices(params_file, device_dir, id_filter):
+    resolved = {}
+    used = set()
+
+    for namespace in LOGI_NAMESPACES:
+        device = _configured_device(params_file, namespace)
+        if device and "CHANGE_ME" not in device and os.path.exists(device):
+            resolved[namespace] = (os.path.realpath(device), "configured", device)
+            used.add(os.path.realpath(device))
+
+    available = _discover_devices(device_dir, id_filter)
+    for namespace in LOGI_NAMESPACES:
+        if namespace in resolved:
+            continue
+        for candidate in available:
+            real_device = os.path.realpath(candidate)
+            if real_device in used:
+                continue
+            resolved[namespace] = (real_device, "auto", candidate)
+            used.add(real_device)
+            break
+
+    return resolved
+
+
 def generate_launch_description():
     package_share = get_package_share_directory(PACKAGE_NAME)
     params_file = os.path.join(package_share, "config", "cameras.yaml")
+    device_dir = os.environ.get("G1_CAM_DEVICE_DIR", "/dev/v4l/by-id")
+    id_filter = os.environ.get("G1_CAM_LOGI_FILTER", "usb-046d")
 
     arguments = [
         DeclareLaunchArgument("realsense", default_value="true"),
@@ -79,19 +108,29 @@ def generate_launch_description():
         )
     )
 
+    resolved = _resolve_logi_devices(params_file, device_dir, id_filter)
+
     for namespace in LOGI_NAMESPACES:
-        device = _logi_device(params_file, namespace)
-        if "CHANGE_ME" in device:
+        entry = resolved.get(namespace)
+        if entry is None:
             actions.append(
                 LogInfo(
                     msg=(
-                        f"[g1_cam_view] {namespace}: video_device still has the CHANGE_ME "
-                        f"placeholder ('{device}'). Run ./scripts/find_cameras.sh and put the "
-                        f"real /dev/v4l/by-id path into config/cameras.yaml."
+                        f"[g1_cam_view] {namespace}: camera not found in {device_dir} "
+                        f"(filter '*{id_filter}*-video-index0'); node not started"
                     ),
                     condition=IfCondition(LaunchConfiguration(namespace)),
                 )
             )
+            continue
+
+        device, source, discovered = entry
+        actions.append(
+            LogInfo(
+                msg=f"[g1_cam_view] {namespace}: {source} camera {discovered} -> {device}",
+                condition=IfCondition(LaunchConfiguration(namespace)),
+            )
+        )
         actions.append(
             Node(
                 package="usb_cam",
@@ -99,10 +138,17 @@ def generate_launch_description():
                 name="usb_cam",
                 namespace=namespace,
                 output="screen",
-                parameters=[params_file],
+                parameters=[params_file, {"video_device": device}],
                 condition=IfCondition(LaunchConfiguration(namespace)),
             )
         )
+
+    mosaic_topics = [REALSENSE_TOPIC]
+    mosaic_labels = [REALSENSE_LABEL]
+    for namespace in LOGI_NAMESPACES:
+        if namespace in resolved:
+            mosaic_topics.append(f"/{namespace}/image_raw")
+            mosaic_labels.append(namespace)
 
     actions.append(
         Node(
@@ -113,8 +159,8 @@ def generate_launch_description():
             condition=IfCondition(LaunchConfiguration("mosaic")),
             parameters=[
                 {
-                    "topics": MOSAIC_TOPICS,
-                    "labels": MOSAIC_LABELS,
+                    "topics": mosaic_topics,
+                    "labels": mosaic_labels,
                     "output_topic": "/cameras/mosaic/compressed",
                     "fps": ParameterValue(LaunchConfiguration("mosaic_fps"), value_type=float),
                     "quality": ParameterValue(LaunchConfiguration("mosaic_quality"), value_type=int),
