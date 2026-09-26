@@ -26,7 +26,10 @@ fi
 
 camera_domain_id="${ROS_DOMAIN_ID:-0}"
 camera_network_interface="${G1_CAM_NETWORK_INTERFACE:-}"
-camera_peers="${G1_CAM_PEERS-10.0.88.180:7410}"
+# Empty by default (multicast discovery).  On networks without multicast set
+# G1_CAM_PEERS per viewer: robot address, preferably without :PORT so the
+# announcement reaches every robot participant process.
+camera_peers="${G1_CAM_PEERS:-}"
 declare -a cyclonedds_peer_array=()
 
 if [[ "${camera_domain_id}" != "0" ]]; then
