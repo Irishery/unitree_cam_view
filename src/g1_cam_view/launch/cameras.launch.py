@@ -133,13 +133,16 @@ def generate_launch_description():
         )
         actions.append(
             Node(
-                package="usb_cam",
-                executable="usb_cam_node_exe",
+                package=PACKAGE_NAME,
+                executable="usb_cam_stable.py",
                 name="usb_cam",
                 namespace=namespace,
                 output="screen",
-                parameters=[params_file, {"video_device": device}],
+                arguments=[discovered],
+                parameters=[params_file],
                 condition=IfCondition(LaunchConfiguration(namespace)),
+                respawn=True,
+                respawn_delay=5.0,
             )
         )
 

@@ -82,9 +82,14 @@ RealSense драйвер находит сам, а Logitech launch ищет ав
 логе запуска:
 
 ```text
-[g1_cam_view] logi_1: auto camera /dev/v4l/by-id/usb-046d_...-video-index0
-[g1_cam_view] logi_2: auto camera /dev/v4l/by-id/usb-046d_...-video-index0
+[g1_cam_view] logi_1: auto camera /dev/v4l/by-id/usb-046d_...-video-index0 -> /dev/video6
+[g1_cam_view] logi_2: auto camera /dev/v4l/by-id/usb-046d_...-video-index0 -> /dev/video7
 ```
+
+Узлы `usb_cam` запускаются через обёртку `usb_cam_stable.py` с
+`respawn=true`: при USB-сбое (`Select timeout, exiting...`) поток поднимается
+сам, а путь камеры перерезолвится из by-id — если камера переподключилась и
+получила другой `/dev/videoN`, она всё равно вернётся.
 
 Ручной конфиг нужен только если:
 
@@ -277,6 +282,12 @@ JPEG-кодировка на роботе не выполняется. Если 
   другим процессом (`fuser -v /dev/videoX`) или путь устарел. Для `usb_cam`
   смотреть лог: он печатает поддерживаемые форматы; при неверном
   `pixel_format` узел падает.
+- **`Select timeout, exiting...` и одна камера пропала.** uvc-поток сорвался
+  (питание/контакт USB). Узел перезапустится сам через `respawn`; если
+  повторяется — переставить камеру в другой порт, использовать USB-хаб с
+  питанием, снизить `framerate` или разрешение. Сообщения
+  `unknown control '...auto'` от Brio 505 безвредны — usb_cam 0.8.1 пробует
+  старые имена V4L2-контролов.
 - **RealSense не открывается.** Проверить `lsusb`, кабель USB 3 и udev-правила
   librealsense; при нескольких камерах задать `serial_no:=...`, иначе драйвер
   возьмёт первую.
