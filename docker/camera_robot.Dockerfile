@@ -8,7 +8,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
        -o Acquire::http::Timeout=30 update \
     && apt-get -o Acquire::ForceIPv4=true -o Acquire::Retries=5 \
        -o Acquire::http::Timeout=30 install -y --no-install-recommends \
-       ros-humble-realsense2-camera \
        ros-humble-rmw-cyclonedds-cpp \
        ros-humble-usb-cam \
        ros-humble-compressed-image-transport \

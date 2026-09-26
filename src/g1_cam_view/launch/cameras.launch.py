@@ -12,8 +12,6 @@ from launch_ros.parameter_descriptions import ParameterValue
 
 PACKAGE_NAME = "g1_cam_view"
 LOGI_NAMESPACES = ("logi_1", "logi_2")
-REALSENSE_TOPIC = "/camera/camera/color/image_raw"
-REALSENSE_LABEL = "D435"
 
 
 def _configured_device(params_file, namespace):
@@ -63,50 +61,17 @@ def generate_launch_description():
     id_filter = os.environ.get("G1_CAM_LOGI_FILTER", "usb-046d")
 
     arguments = [
-        DeclareLaunchArgument("realsense", default_value="true"),
         DeclareLaunchArgument("logi_1", default_value="true"),
         DeclareLaunchArgument("logi_2", default_value="true"),
         DeclareLaunchArgument("mosaic", default_value="true"),
-        DeclareLaunchArgument("serial_no", default_value=""),
-        DeclareLaunchArgument("device_type", default_value=""),
-        DeclareLaunchArgument("color_profile", default_value="640x480x15"),
         DeclareLaunchArgument("mosaic_fps", default_value="10.0"),
         DeclareLaunchArgument("mosaic_quality", default_value="80"),
         DeclareLaunchArgument("tile_width", default_value="640"),
         DeclareLaunchArgument("tile_height", default_value="480"),
-        DeclareLaunchArgument("columns", default_value="3"),
+        DeclareLaunchArgument("columns", default_value="2"),
     ]
 
     actions = list(arguments)
-
-    actions.append(
-        Node(
-            package="realsense2_camera",
-            executable="realsense2_camera_node",
-            namespace="camera",
-            name="camera",
-            output="screen",
-            condition=IfCondition(LaunchConfiguration("realsense")),
-            parameters=[
-                {
-                    "device_type": ParameterValue(LaunchConfiguration("device_type"), value_type=str),
-                    "serial_no": ParameterValue(LaunchConfiguration("serial_no"), value_type=str),
-                    "enable_color": True,
-                    "rgb_camera.color_profile": ParameterValue(
-                        LaunchConfiguration("color_profile"), value_type=str
-                    ),
-                    "enable_depth": False,
-                    "enable_infra": False,
-                    "enable_infra1": False,
-                    "enable_infra2": False,
-                    "enable_gyro": False,
-                    "enable_accel": False,
-                    "pointcloud.enable": False,
-                    "publish_tf": False,
-                }
-            ],
-        )
-    )
 
     resolved = _resolve_logi_devices(params_file, device_dir, id_filter)
 
@@ -146,33 +111,41 @@ def generate_launch_description():
             )
         )
 
-    mosaic_topics = [REALSENSE_TOPIC]
-    mosaic_labels = [REALSENSE_LABEL]
+    mosaic_topics = []
+    mosaic_labels = []
     for namespace in LOGI_NAMESPACES:
         if namespace in resolved:
             mosaic_topics.append(f"/{namespace}/image_raw")
             mosaic_labels.append(namespace)
 
-    actions.append(
-        Node(
-            package=PACKAGE_NAME,
-            executable="camera_mosaic.py",
-            name="camera_mosaic",
-            output="screen",
-            condition=IfCondition(LaunchConfiguration("mosaic")),
-            parameters=[
-                {
-                    "topics": mosaic_topics,
-                    "labels": mosaic_labels,
-                    "output_topic": "/cameras/mosaic/compressed",
-                    "fps": ParameterValue(LaunchConfiguration("mosaic_fps"), value_type=float),
-                    "quality": ParameterValue(LaunchConfiguration("mosaic_quality"), value_type=int),
-                    "tile_width": ParameterValue(LaunchConfiguration("tile_width"), value_type=int),
-                    "tile_height": ParameterValue(LaunchConfiguration("tile_height"), value_type=int),
-                    "columns": ParameterValue(LaunchConfiguration("columns"), value_type=int),
-                }
-            ],
+    if not mosaic_topics:
+        actions.append(
+            LogInfo(
+                msg="[g1_cam_view] mosaic: no cameras found; mosaic not started",
+                condition=IfCondition(LaunchConfiguration("mosaic")),
+            )
         )
-    )
+    else:
+        actions.append(
+            Node(
+                package=PACKAGE_NAME,
+                executable="camera_mosaic.py",
+                name="camera_mosaic",
+                output="screen",
+                condition=IfCondition(LaunchConfiguration("mosaic")),
+                parameters=[
+                    {
+                        "topics": mosaic_topics,
+                        "labels": mosaic_labels,
+                        "output_topic": "/cameras/mosaic/compressed",
+                        "fps": ParameterValue(LaunchConfiguration("mosaic_fps"), value_type=float),
+                        "quality": ParameterValue(LaunchConfiguration("mosaic_quality"), value_type=int),
+                        "tile_width": ParameterValue(LaunchConfiguration("tile_width"), value_type=int),
+                        "tile_height": ParameterValue(LaunchConfiguration("tile_height"), value_type=int),
+                        "columns": ParameterValue(LaunchConfiguration("columns"), value_type=int),
+                    }
+                ],
+            )
+        )
 
     return LaunchDescription(actions)

@@ -9,11 +9,10 @@ from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import CompressedImage, Image
 
 DEFAULT_TOPICS = [
-    "/camera/camera/color/image_raw",
     "/logi_1/image_raw",
     "/logi_2/image_raw",
 ]
-DEFAULT_LABELS = ["D435", "logi_1", "logi_2"]
+DEFAULT_LABELS = ["logi_1", "logi_2"]
 
 
 class CameraMosaic(Node):
@@ -98,6 +97,8 @@ class CameraMosaic(Node):
         return None
 
     def _on_timer(self):
+        if not self._topics:
+            return
         if self._publisher.get_subscription_count() == 0:
             return
 

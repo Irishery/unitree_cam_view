@@ -1,33 +1,30 @@
 # unitree_cam_view
 
-Минимальный ROS 2-контур для просмотра камер Unitree G1: цветная RealSense
-D435 и две USB-камеры Logitech. Из репозитория `~/unitree` взята только
-сетевая/DDS-обвязка; локомоция, DEX3, LiDAR, SLAM/Nav2, MuJoCo и Gazebo
-удалены.
+Минимальный ROS 2-контур для просмотра двух USB-камер Logitech на Unitree G1.
+Из репозитория `~/unitree` взята только сетевая/DDS-обвязка; локомоция, DEX3,
+LiDAR, SLAM/Nav2, MuJoCo и Gazebo удалены. RealSense D435 пока исключена из
+приложения (её можно вернуть как отдельный источник кадров).
 
 ```text
 Робот (Ubuntu 22.04, ROS 2 Humble, CycloneDDS, ROS_DOMAIN_ID=0)
-  RealSense D435 -- realsense2_camera -- /camera/camera/color/image_raw --+
-  Logitech 1     -- usb_cam ----------- /logi_1/image_raw --------------+--> camera_mosaic
-  Logitech 2     -- usb_cam ----------- /logi_2/image_raw --------------+         |
-                                                                                  v
-                        /cameras/mosaic/compressed (JPEG, один поток) -- DDS -->  Ноутбук
-                                                                                  RViz в Docker
+  Logitech 1 -- usb_cam -- /logi_1/image_raw --+
+  Logitech 2 -- usb_cam -- /logi_2/image_raw --+--> camera_mosaic
+                                                   |
+                    /cameras/mosaic/compressed (JPEG, один поток) -- DDS -->  Ноутбук
+                                                                              RViz в Docker
 ```
 
 Мозаика собирается на бортовом компьютере, поэтому по Wi-Fi передаётся один
-JPEG-поток вместо трёх сырых. Отдельные камеры тоже видны на ноутбуке, если
+JPEG-поток вместо двух сырых. Отдельные камеры тоже видны на ноутбуке, если
 включить соответствующие Image-панели в RViz.
 
 ## Топики
 
 | Топик | Тип | Где публикуется |
 |---|---|---|
-| `/camera/camera/color/image_raw` | `sensor_msgs/msg/Image` (rgb8) | робот, RealSense D435 |
-| `/camera/camera/color/image_raw/compressed` | `sensor_msgs/msg/CompressedImage` | робот, D435 (для RViz) |
 | `/logi_1/image_raw`, `/logi_1/image_raw/compressed` | `sensor_msgs/msg/Image` (rgb8) | робот, Logitech 1 |
 | `/logi_2/image_raw`, `/logi_2/image_raw/compressed` | `sensor_msgs/msg/Image` (rgb8) | робот, Logitech 2 |
-| `/cameras/mosaic/compressed` | `sensor_msgs/msg/CompressedImage` (jpeg) | робот, мозаика 3 камер |
+| `/cameras/mosaic/compressed` | `sensor_msgs/msg/CompressedImage` (jpeg) | робот, мозаика найденных камер |
 
 ## Состав репозитория
 
@@ -55,7 +52,6 @@ src/g1_cam_view/
 ```bash
 sudo apt update
 sudo apt install -y \
-  ros-humble-realsense2-camera \
   ros-humble-usb-cam \
   ros-humble-compressed-image-transport \
   ros-humble-rmw-cyclonedds-cpp \
@@ -69,17 +65,12 @@ cd ~/unitree_cam_view
 ./scripts/build.sh
 ```
 
-Для доступа к RealSense без root может понадобиться пакет udev-правил
-`librealsense2-udev-rules` из репозитория librealsense (см. раздел
-«Диагностика»).
-
 ## Робот: настройка камер (необязательно)
 
-RealSense драйвер находит сам, а Logitech launch ищет автоматически: сканирует
-`/dev/v4l/by-id/`, берёт ссылки `usb-046d_*-video-index0` (Logitech по USB-ID
-`046d`), сортирует и назначает первые две на `logi_1` и `logi_2`. Камеры можно
-подключать в любом порядке — привязка к by-id стабильна. Назначение видно в
-логе запуска:
+Launch сам ищет Logitech: сканирует `/dev/v4l/by-id/`, берёт ссылки
+`usb-046d_*-video-index0` (Logitech по USB-ID `046d`), сортирует и назначает
+первые две на `logi_1` и `logi_2`. Камеры можно подключать в любом порядке —
+привязка к by-id стабильна. Назначение видно в логе запуска:
 
 ```text
 [g1_cam_view] logi_1: auto camera /dev/v4l/by-id/usb-046d_...-video-index0 -> /dev/video6
@@ -127,32 +118,21 @@ ros2 launch g1_cam_view cameras.launch.py
 
 | Аргумент | По умолчанию | Значение |
 |---|---|---|
-| `realsense` | `true` | включить RealSense D435 |
 | `logi_1`, `logi_2` | `true` | включить соответствующую Logitech |
 | `mosaic` | `true` | публиковать `/cameras/mosaic/compressed` |
-| `serial_no` | `""` | серийник RealSense, если подключено несколько |
-| `device_type` | `""` | фильтр модели RealSense, например `d435` при нескольких камерах |
-| `color_profile` | `640x480x15` | профиль цвета D435 (`ШxВxЧД`) |
 | `mosaic_fps` | `10.0` | частота мозаики |
 | `mosaic_quality` | `80` | JPEG quality мозаики |
 | `tile_width`, `tile_height` | `640`, `480` | размер плитки одной камеры |
-| `columns` | `3` | плиток в ряд |
+| `columns` | `2` | плиток в ряд |
 
 Дополнительно авто-обнаружение настраивается переменными окружения:
 `G1_CAM_DEVICE_DIR` (по умолчанию `/dev/v4l/by-id`) и `G1_CAM_LOGI_FILTER`
 (по умолчанию `usb-046d`).
 
-Пример только с RealSense:
-
-```bash
-ros2 launch g1_cam_view cameras.launch.py logi_1:=false logi_2:=false
-```
-
 Проверка на роботе:
 
 ```bash
 ros2 topic list | grep -E 'image|mosaic'
-timeout 8 ros2 topic hz /camera/camera/color/image_raw
 timeout 8 ros2 topic hz /logi_1/image_raw
 timeout 8 ros2 topic hz /cameras/mosaic/compressed
 ```
@@ -187,7 +167,7 @@ G1_CAM_LAUNCH_ARGS="logi_1:=false logi_2:=false" ./scripts/robot_up.sh
 - образ можно собрать на ноутбуке и перенести:
   `docker save unitree-g1-camera-robot:humble | ssh unitree@10.0.88.180 docker load`;
 - если камеры не видны в контейнере, запустить с `--privileged -v /dev:/dev`
-  вместо `--device-cgroup-rule` (и проверить udev-правила RealSense на хосте);
+  вместо `--device-cgroup-rule`;
 - интерфейсы и peer ноутбука задаются так же, как в `cam_env.sh`
   (`G1_CAM_NETWORK_INTERFACE(S)`, `G1_CAM_PEERS`), аргументами или переменными;
 - камеры публикуются в тот же domain 0, что и штатный Unitree DDS на хосте.
@@ -217,8 +197,8 @@ G1_CAM_PEERS=10.0.69.107 \
   ./scripts/view_cameras.sh
 ```
 
-По умолчанию включена панель `Mosaic (D435 + 2x Logi)`. Отдельные камеры:
-в дереве `Displays` включить `RealSense D435 color`, `Logitech 1`, `Logitech 2`
+По умолчанию включена панель `Mosaic (2x Logi)`. Отдельные камеры:
+в дереве `Displays` включить `Logitech 1`, `Logitech 2`
 (они подписаны на compressed-топики). Панели изображений в RViz можно
 перетаскивать; расположение по умолчанию — вкладки.
 
@@ -282,15 +262,12 @@ JPEG-кодировка на роботе не выполняется. Если 
   другим процессом (`fuser -v /dev/videoX`) или путь устарел. Для `usb_cam`
   смотреть лог: он печатает поддерживаемые форматы; при неверном
   `pixel_format` узел падает.
-- **`Select timeout, exiting...` и одна камера пропала.** uvc-поток сорвался
+- **Одна из камер пропала / `Select timeout, exiting...`.** uvc-поток сорвался
   (питание/контакт USB). Узел перезапустится сам через `respawn`; если
   повторяется — переставить камеру в другой порт, использовать USB-хаб с
   питанием, снизить `framerate` или разрешение. Сообщения
   `unknown control '...auto'` от Brio 505 безвредны — usb_cam 0.8.1 пробует
   старые имена V4L2-контролов.
-- **RealSense не открывается.** Проверить `lsusb`, кабель USB 3 и udev-правила
-  librealsense; при нескольких камерах задать `serial_no:=...`, иначе драйвер
-  возьмёт первую.
 - **В RViz пусто.** Убедиться, что на роботе идут `/cameras/mosaic/compressed`
   (или compressed-топик отдельной камеры), что установлен
   `ros-humble-compressed-image-transport` и совпадают `G1_CAM_PEERS`. Все
@@ -314,3 +291,8 @@ Livox Mid-360, SLAM/Nav2, симуляторы и их RViz-профили, ск
 checks. Из общей обвязки сохранены схема CycloneDDS/domain 0 и запуск зрителя
 в Docker. Переменные окружения переименованы в `G1_CAM_*`, чтобы не
 пересекаться с `~/unitree`.
+
+RealSense D435 исключена из этой версии: драйвер и топики убраны из launch,
+образа и профиля RViz, чтобы камера оставалась свободной для других
+приложений. Вернуть её можно как отдельный источник кадров и добавить его тему
+в мозаику.

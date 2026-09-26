@@ -2,7 +2,7 @@
 <package format="3">
   <name>g1_cam_view</name>
   <version>0.1.0</version>
-  <description>Camera-only ROS 2 stack for the Unitree G1: RealSense D435 and two Logitech USB cameras.</description>
+  <description>Camera-only ROS 2 stack for the Unitree G1: two Logitech USB cameras with a JPEG mosaic viewer.</description>
   <maintainer email="maintainer@example.com">G1 camera view team</maintainer>
   <license>BSD-3-Clause</license>
 
@@ -12,7 +12,6 @@
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
   <exec_depend>rclpy</exec_depend>
-  <exec_depend>realsense2_camera</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>usb_cam</exec_depend>
 
