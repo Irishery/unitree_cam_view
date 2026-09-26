@@ -28,12 +28,17 @@ if [[ ! -f "${config_file}" ]]; then
   exit 1
 fi
 
+force_replace=false
+if [[ "${1:-}" == "--force" ]]; then
+  force_replace=true
+  shift
+fi
+
 # Two camera stacks would fight over the USB devices and duplicate topics.
 running_container="$(docker ps -q --filter ancestor="${image_name}" | head -n 1)"
 if [[ -n "${running_container}" ]]; then
-  if [[ "${1:-}" == "--force" ]]; then
+  if [[ "${force_replace}" == true ]]; then
     docker rm -f "${running_container}" >/dev/null
-    shift
   else
     echo "Camera stack is already running (container ${running_container})." >&2
     echo "Stop it first with: docker rm -f ${running_container}" >&2

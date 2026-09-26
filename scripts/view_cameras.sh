@@ -47,11 +47,15 @@ fi
 
 # RViz pins participant index 0 (UDP 7410), so only one viewer may run at a
 # time; otherwise CycloneDDS fails with "failed to create unicast sockets".
+force_replace=false
+if [[ "${1:-}" == "--force" ]]; then
+  force_replace=true
+  shift
+fi
 running_container="$(docker ps -q --filter ancestor="${image_name}" | head -n 1)"
 if [[ -n "${running_container}" ]]; then
-  if [[ "${1:-}" == "--force" ]]; then
+  if [[ "${force_replace}" == true ]]; then
     docker rm -f "${running_container}" >/dev/null
-    shift
   else
     echo "Camera viewer is already running (container ${running_container})." >&2
     echo "Close that RViz window, or stop it with:" >&2
