@@ -11,7 +11,7 @@ from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 
 PACKAGE_NAME = "g1_cam_view"
-LOGI_NAMESPACES = ("logi_1", "logi_2")
+LOGI_NAMESPACES = ("logi_1", "logi_2", "logi_3")
 
 
 def _configured_device(params_file, namespace):
@@ -63,12 +63,13 @@ def generate_launch_description():
     arguments = [
         DeclareLaunchArgument("logi_1", default_value="true"),
         DeclareLaunchArgument("logi_2", default_value="true"),
+        DeclareLaunchArgument("logi_3", default_value="true"),
         DeclareLaunchArgument("mosaic", default_value="true"),
         DeclareLaunchArgument("mosaic_fps", default_value="10.0"),
         DeclareLaunchArgument("mosaic_quality", default_value="80"),
         DeclareLaunchArgument("tile_width", default_value="640"),
         DeclareLaunchArgument("tile_height", default_value="480"),
-        DeclareLaunchArgument("columns", default_value="2"),
+        DeclareLaunchArgument("columns", default_value="3"),
     ]
 
     actions = list(arguments)

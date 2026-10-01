@@ -1,6 +1,6 @@
 # unitree_cam_view
 
-Минимальный ROS 2-контур для просмотра двух USB-камер Logitech на Unitree G1.
+Минимальный ROS 2-контур для просмотра трёх USB-камер Logitech на Unitree G1.
 Из репозитория `~/unitree` взята только сетевая/DDS-обвязка; локомоция, DEX3,
 LiDAR, SLAM/Nav2, MuJoCo и Gazebo удалены. RealSense D435 пока исключена из
 приложения (её можно вернуть как отдельный источник кадров).
@@ -8,14 +8,15 @@ LiDAR, SLAM/Nav2, MuJoCo и Gazebo удалены. RealSense D435 пока ис�
 ```text
 Робот (Ubuntu 22.04, ROS 2 Humble, CycloneDDS, ROS_DOMAIN_ID=0)
   Logitech 1 -- usb_cam -- /logi_1/image_raw --+
-  Logitech 2 -- usb_cam -- /logi_2/image_raw --+--> camera_mosaic
-                                                   |
-                    /cameras/mosaic/compressed (JPEG, один поток) -- DDS -->  Ноутбук
-                                                                              RViz в Docker
+  Logitech 2 -- usb_cam -- /logi_2/image_raw --+--> camera_mosaic --> /cameras/mosaic/compressed
+  Logitech 3 -- usb_cam -- /logi_3/image_raw --+                             |
+                                                        DDS (Wi-Fi) ---------+
+                                                              |
+                                                      Ноутбук: RViz в Docker
 ```
 
 Мозаика собирается на бортовом компьютере, поэтому по Wi-Fi передаётся один
-JPEG-поток вместо двух сырых. Отдельные камеры тоже видны на ноутбуке, если
+JPEG-поток вместо трёх сырых. Отдельные камеры тоже видны на ноутбуке, если
 включить соответствующие Image-панели в RViz.
 
 ## Топики
@@ -24,6 +25,7 @@ JPEG-поток вместо двух сырых. Отдельные камер�
 |---|---|---|
 | `/logi_1/image_raw`, `/logi_1/image_raw/compressed` | `sensor_msgs/msg/Image` (rgb8) | робот, Logitech 1 |
 | `/logi_2/image_raw`, `/logi_2/image_raw/compressed` | `sensor_msgs/msg/Image` (rgb8) | робот, Logitech 2 |
+| `/logi_3/image_raw`, `/logi_3/image_raw/compressed` | `sensor_msgs/msg/Image` (rgb8) | робот, Logitech 3 |
 | `/cameras/mosaic/compressed` | `sensor_msgs/msg/CompressedImage` (jpeg) | робот, мозаика найденных камер |
 
 ## Состав репозитория
@@ -41,7 +43,7 @@ scripts/robot_up.sh                  запуск камер на роботе �
 scripts/viewer_build.sh              сборка Docker-образа на ноутбуке
 scripts/view_cameras.sh              запуск RViz на ноутбуке
 src/g1_cam_view/
-  config/cameras.yaml                параметры двух Logitech
+  config/cameras.yaml                параметры трёх Logitech
   launch/cameras.launch.py           драйверы камер + мозаика
   rviz/cameras.rviz                  профиль RViz
   scripts/camera_mosaic.py           сборка JPEG-мозаики
@@ -69,12 +71,13 @@ cd ~/unitree_cam_view
 
 Launch сам ищет Logitech: сканирует `/dev/v4l/by-id/`, берёт ссылки
 `usb-046d_*-video-index0` (Logitech по USB-ID `046d`), сортирует и назначает
-первые две на `logi_1` и `logi_2`. Камеры можно подключать в любом порядке —
-привязка к by-id стабильна. Назначение видно в логе запуска:
+первые три на `logi_1`, `logi_2` и `logi_3`. Камеры можно подключать в любом
+порядке — привязка к by-id стабильна. Назначение видно в логе запуска:
 
 ```text
 [g1_cam_view] logi_1: auto camera /dev/v4l/by-id/usb-046d_...-video-index0 -> /dev/video6
 [g1_cam_view] logi_2: auto camera /dev/v4l/by-id/usb-046d_...-video-index0 -> /dev/video7
+[g1_cam_view] logi_3: auto camera /dev/v4l/by-id/usb-046d_...-video-index0 -> /dev/video8
 ```
 
 Узлы `usb_cam` запускаются через обёртку `usb_cam_stable.py` с
@@ -84,7 +87,7 @@ Launch сам ищет Logitech: сканирует `/dev/v4l/by-id/`, берё�
 
 Ручной конфиг нужен только если:
 
-- важно, какая физическая камера попадёт в `logi_1`, а какая в `logi_2`;
+- важно, какая физическая камера попадёт в `logi_1`/`logi_2`/`logi_3`;
 - камеры не Logitech (поменяйте `G1_CAM_LOGI_FILTER`, по умолчанию `usb-046d`);
 - ссылки `/dev/v4l/by-id` нет (задайте пути вручную или каталог
   через `G1_CAM_DEVICE_DIR`).
@@ -99,7 +102,7 @@ Launch сам ищет Logitech: сканирует `/dev/v4l/by-id/`, берё�
     video_device: "/dev/v4l/by-id/usb-046d_Brio_505_XXXXXXXX-video-index0"
 ```
 
-Разрешение и частоту обеих Logitech задают там же (`image_width`,
+Разрешение и частоту каждой Logitech задают там же (`image_width`,
 `image_height`, `framerate`, `pixel_format`). Если камера не умеет MJPEG,
 заменить `mjpeg2rgb` на `yuyv2rgb`.
 
@@ -118,12 +121,12 @@ ros2 launch g1_cam_view cameras.launch.py
 
 | Аргумент | По умолчанию | Значение |
 |---|---|---|
-| `logi_1`, `logi_2` | `true` | включить соответствующую Logitech |
+| `logi_1`, `logi_2`, `logi_3` | `true` | включить соответствующую Logitech |
 | `mosaic` | `true` | публиковать `/cameras/mosaic/compressed` |
 | `mosaic_fps` | `10.0` | частота мозаики |
 | `mosaic_quality` | `80` | JPEG quality мозаики |
 | `tile_width`, `tile_height` | `640`, `480` | размер плитки одной камеры |
-| `columns` | `2` | плиток в ряд |
+| `columns` | `3` | плиток в ряд |
 
 Дополнительно авто-обнаружение настраивается переменными окружения:
 `G1_CAM_DEVICE_DIR` (по умолчанию `/dev/v4l/by-id`) и `G1_CAM_LOGI_FILTER`
@@ -159,7 +162,7 @@ export G1_CAM_PEERS=10.0.88.165:7410
 Дополнительные аргументы launch передаются через `G1_CAM_LAUNCH_ARGS`:
 
 ```bash
-G1_CAM_LAUNCH_ARGS="logi_1:=false logi_2:=false" ./scripts/robot_up.sh
+G1_CAM_LAUNCH_ARGS="logi_1:=false logi_2:=false logi_3:=false" ./scripts/robot_up.sh
 ```
 
 Полезно знать:
@@ -197,8 +200,8 @@ G1_CAM_PEERS=10.0.69.107 \
   ./scripts/view_cameras.sh
 ```
 
-По умолчанию включена панель `Mosaic (2x Logi)`. Отдельные камеры:
-в дереве `Displays` включить `Logitech 1`, `Logitech 2`
+По умолчанию включена панель `Mosaic (3x Logi)`. Отдельные камеры:
+в дереве `Displays` включить `Logitech 1`, `Logitech 2`, `Logitech 3`
 (они подписаны на compressed-топики). Панели изображений в RViz можно
 перетаскивать; расположение по умолчанию — вкладки.
 

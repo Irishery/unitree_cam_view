@@ -8,7 +8,7 @@ Visualization Manager:
       Enabled: true
       Max Value: 1
       Min Value: 0
-      Name: Mosaic (2x Logi)
+      Name: Mosaic (3x Logi)
       Normalize Range: true
       Topic:
         Depth: 5
@@ -42,6 +42,19 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Best Effort
         Value: /logi_2/image_raw/compressed
+      Value: false
+    - Class: rviz_default_plugins/Image
+      Enabled: false
+      Max Value: 1
+      Min Value: 0
+      Name: Logitech 3
+      Normalize Range: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /logi_3/image_raw/compressed
       Value: false
   Enabled: true
   Global Options:

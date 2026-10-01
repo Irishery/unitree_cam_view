@@ -11,8 +11,9 @@ from sensor_msgs.msg import CompressedImage, Image
 DEFAULT_TOPICS = [
     "/logi_1/image_raw",
     "/logi_2/image_raw",
+    "/logi_3/image_raw",
 ]
-DEFAULT_LABELS = ["logi_1", "logi_2"]
+DEFAULT_LABELS = ["logi_1", "logi_2", "logi_3"]
 
 
 class CameraMosaic(Node):
