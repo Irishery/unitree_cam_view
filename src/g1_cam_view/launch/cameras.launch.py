@@ -78,10 +78,10 @@ def generate_launch_description():
         DeclareLaunchArgument("logi_2", default_value="true"),
         DeclareLaunchArgument("logi_3", default_value="true"),
         DeclareLaunchArgument("mosaic", default_value="true"),
-        DeclareLaunchArgument("mosaic_fps", default_value="10.0"),
-        DeclareLaunchArgument("mosaic_quality", default_value="80"),
+        DeclareLaunchArgument("mosaic_fps", default_value="8.0"),
+        DeclareLaunchArgument("mosaic_quality", default_value="70"),
         DeclareLaunchArgument("tile_width", default_value="640"),
-        DeclareLaunchArgument("tile_height", default_value="480"),
+        DeclareLaunchArgument("tile_height", default_value="360"),
         DeclareLaunchArgument("columns", default_value="3"),
     ]
 

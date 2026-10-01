@@ -25,10 +25,10 @@ class CameraMosaic(Node):
         self._labels = (labels + [f"cam{index}" for index in range(len(labels), len(self._topics))])
         self._labels = self._labels[:len(self._topics)]
         self._output_topic = str(self.declare_parameter("output_topic", "/cameras/mosaic/compressed").value)
-        self._fps = float(self.declare_parameter("fps", 10.0).value)
-        self._quality = int(self.declare_parameter("quality", 80).value)
+        self._fps = float(self.declare_parameter("fps", 8.0).value)
+        self._quality = int(self.declare_parameter("quality", 70).value)
         tile_width = max(1, int(self.declare_parameter("tile_width", 640).value))
-        tile_height = max(1, int(self.declare_parameter("tile_height", 480).value))
+        tile_height = max(1, int(self.declare_parameter("tile_height", 360).value))
         self._tile_size = (tile_width, tile_height)
         self._columns = max(1, int(self.declare_parameter("columns", 3).value))
         self._stale_timeout = float(self.declare_parameter("stale_timeout", 2.0).value)
@@ -141,6 +141,8 @@ class CameraMosaic(Node):
     def _fit(self, frame):
         tile_width, tile_height = self._tile_size
         height, width = frame.shape[:2]
+        if (width, height) == (tile_width, tile_height):
+            return frame.copy()
         scale = min(tile_width / width, tile_height / height)
         resized = cv2.resize(
             frame,

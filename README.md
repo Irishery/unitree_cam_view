@@ -103,11 +103,13 @@ Launch сам ищет Logitech: сканирует `/dev/v4l/by-id/`, берё�
 ```
 
 Разрешение и частоту каждой Logitech задают там же (`image_width`,
-`image_height`, `framerate`, `pixel_format`). Если камера не умеет MJPEG,
-заменить `mjpeg2rgb` на `yuyv2rgb`. Поле `v4l2_controls` применяется через
-`v4l2-ctl` перед стартом узла и при каждом `respawn`; по умолчанию у всех трёх
-камер стоит `exposure_dynamic_framerate=0`, чтобы Brio не снижала FPS в
-темноте.
+`image_height`, `framerate`, `pixel_format`). По умолчанию камеры работают в
+640×360@10 — это меньше грузит USB, чем 640×480@15. Мозаика по умолчанию
+складывает те же 640×360 на камеру с частотой 8 Гц и JPEG quality 70. Если
+камера не умеет MJPEG, заменить `mjpeg2rgb` на `yuyv2rgb`. Поле
+`v4l2_controls` применяется через `v4l2-ctl` перед стартом узла и при каждом
+`respawn`; по умолчанию у всех трёх камер стоит
+`exposure_dynamic_framerate=0`, чтобы Brio не снижала FPS в темноте.
 
 ## Робот: запуск
 
@@ -126,9 +128,9 @@ ros2 launch g1_cam_view cameras.launch.py
 |---|---|---|
 | `logi_1`, `logi_2`, `logi_3` | `true` | включить соответствующую Logitech |
 | `mosaic` | `true` | публиковать `/cameras/mosaic/compressed` |
-| `mosaic_fps` | `10.0` | частота мозаики |
-| `mosaic_quality` | `80` | JPEG quality мозаики |
-| `tile_width`, `tile_height` | `640`, `480` | размер плитки одной камеры |
+| `mosaic_fps` | `8.0` | частота мозаики |
+| `mosaic_quality` | `70` | JPEG quality мозаики |
+| `tile_width`, `tile_height` | `640`, `360` | размер плитки одной камеры |
 | `columns` | `3` | плиток в ряд |
 
 Дополнительно авто-обнаружение настраивается переменными окружения:

@@ -26,8 +26,8 @@
     camera_name: "logi_1"
     frame_id: "logi_1_optical_frame"
     image_width: 640
-    image_height: 480
-    framerate: 15.0
+    image_height: 360
+    framerate: 10.0
     pixel_format: "mjpeg2rgb"
     io_method: "mmap"
     camera_info_url: ""
@@ -46,8 +46,8 @@
     camera_name: "logi_2"
     frame_id: "logi_2_optical_frame"
     image_width: 640
-    image_height: 480
-    framerate: 15.0
+    image_height: 360
+    framerate: 10.0
     pixel_format: "mjpeg2rgb"
     io_method: "mmap"
     camera_info_url: ""
@@ -66,8 +66,8 @@
     camera_name: "logi_3"
     frame_id: "logi_3_optical_frame"
     image_width: 640
-    image_height: 480
-    framerate: 15.0
+    image_height: 360
+    framerate: 10.0
     pixel_format: "mjpeg2rgb"
     io_method: "mmap"
     camera_info_url: ""
