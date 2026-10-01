@@ -24,6 +24,19 @@ def _configured_device(params_file, namespace):
         return ""
 
 
+def _configured_controls(params_file, namespace):
+    try:
+        with open(params_file, "r", encoding="utf-8") as stream:
+            config = yaml.safe_load(stream) or {}
+        section = config.get(f"/{namespace}/usb_cam", {}).get("ros__parameters", {})
+        controls = section.get("v4l2_controls", [])
+        if isinstance(controls, str):
+            return [controls]
+        return [str(control) for control in controls]
+    except (OSError, yaml.YAMLError, AttributeError):
+        return []
+
+
 def _discover_devices(device_dir, id_filter):
     pattern = os.path.join(device_dir, f"*{id_filter}*-video-index0")
     return [path for path in sorted(glob.glob(pattern)) if os.path.exists(path)]
@@ -91,12 +104,18 @@ def generate_launch_description():
             continue
 
         device, source, discovered = entry
+        controls = _configured_controls(params_file, namespace)
+        control_note = f", v4l2 controls {controls}" if controls else ""
         actions.append(
             LogInfo(
-                msg=f"[g1_cam_view] {namespace}: {source} camera {discovered} -> {device}",
+                msg=f"[g1_cam_view] {namespace}: {source} camera {discovered} -> {device}{control_note}",
                 condition=IfCondition(LaunchConfiguration(namespace)),
             )
         )
+        node_arguments = []
+        for control in controls:
+            node_arguments += ["--control", control]
+        node_arguments.append(discovered)
         actions.append(
             Node(
                 package=PACKAGE_NAME,
@@ -104,7 +123,7 @@ def generate_launch_description():
                 name="usb_cam",
                 namespace=namespace,
                 output="screen",
-                arguments=[discovered],
+                arguments=node_arguments,
                 parameters=[params_file],
                 condition=IfCondition(LaunchConfiguration(namespace)),
                 respawn=True,

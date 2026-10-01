@@ -14,6 +14,11 @@
 #
 # pixel_format: mjpeg2rgb мягче всего грузит USB и даёт rgb8 на выходе.
 # Если камера не умеет MJPEG, укажите yuyv2rgb.
+#
+# v4l2_controls применяются через v4l2-ctl перед запуском узла (и при каждом
+# respawn). exposure_dynamic_framerate=0 не даёт Brio снижать FPS в темноте;
+# при необходимости добавьте сюда другие контролы, например
+# "auto_exposure=1", "exposure_time_absolute=156" или "brightness=128".
 
 /logi_1/usb_cam:
   ros__parameters:
@@ -33,6 +38,7 @@
     gain: -1
     auto_white_balance: true
     autoexposure: true
+    v4l2_controls: ["exposure_dynamic_framerate=0"]
 
 /logi_2/usb_cam:
   ros__parameters:
@@ -52,6 +58,7 @@
     gain: -1
     auto_white_balance: true
     autoexposure: true
+    v4l2_controls: ["exposure_dynamic_framerate=0"]
 
 /logi_3/usb_cam:
   ros__parameters:
@@ -71,3 +78,4 @@
     gain: -1
     auto_white_balance: true
     autoexposure: true
+    v4l2_controls: ["exposure_dynamic_framerate=0"]
